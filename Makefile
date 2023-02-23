@@ -1,16 +1,16 @@
-SRCFILES := main.cpp checkVector.cpp checkMap.cpp checkReverseIt.cpp##myIterator.cpp
+SRCFILES := main.cpp checkVector.cpp checkMap.cpp checkReverseIt.cpp checkStack.cpp
 
 NAME := Container
 
-HEADERFILES := vector.hpp map.hpp pair.hpp vector.tpp reverseIterator.hpp iterator_traits.hpp
+HEADERFILES := enable_if.hpp equal.hpp iterator_traits.hpp main.hpp map.hpp pair.hpp reverseIterator.hpp stack.hpp vector.hpp
 
 CC := c++
 
-FLAGS := -Wall -Wextra -std=c++98 -g #-Werror
+FLAGS := -Wall -Wextra -std=c++98 -g -Werror
 
 RM := rm -f
 
-DIR_SRC := src
+DIR_SRC := myTest
 
 DIR_HEADER := src
 

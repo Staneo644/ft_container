@@ -18,9 +18,7 @@ namespace ft {
 	{
 		public:
 			typedef Iter iterator_type;
-			//typedef typename std::size_t size_type;
 
-	
 			typedef typename ft::iterator_traits<Iter>::value_type 			value_type;
 			typedef typename ft::iterator_traits<Iter>::iterator_category 	iterator_category;
 		 	typedef typename ft::iterator_traits<Iter>::difference_type 	difference_type;
@@ -48,27 +46,30 @@ namespace ft {
 			}
 
 			reference operator*() const{
-				Iter tmp = current; return *--tmp;
+				//return *(--base());
+				Iter tmp = current; tmp--; return *tmp;
 			}
 
-			pointer operator->() const{
-				return std::addressof(operator*());
+			pointer operator->() const {
+				Iter tmp = current; tmp--;
+				return (&(*tmp));
+				//return &(operator*());
 			}
 
-			reverse_iterator operator++(){
+			reverse_iterator operator++(int){
 				reverse_iterator __tmp(*this); --current; return __tmp;
 			}
 
-			reverse_iterator operator--(){
+			reverse_iterator operator--(int){
 				reverse_iterator __tmp(*this); ++current; return __tmp;
 			}
 
-			reverse_iterator& operator++( int ){
+			reverse_iterator& operator++(){
 				current--;
 				return *this;
 			}
 
-			reverse_iterator& operator--( int ){
+			reverse_iterator& operator--(){
 				current++;
 				return *this;
 			}
@@ -94,7 +95,7 @@ namespace ft {
 			}
 
 			reference operator[]( difference_type n ) const{
-				return (&(base()[-n-1]));
+				return ((base()[-n - 1]));
 			}
 
 
@@ -118,26 +119,26 @@ namespace ft {
 	template< class Iterator1, class Iterator2 >
 	bool operator<( const ft::reverse_iterator<Iterator1>& lhs,
                 const ft::reverse_iterator<Iterator2>& rhs ){
-					return lhs.base() < rhs.base();
+					return lhs.base() > rhs.base();
 	}
 
 
 	template< class Iterator1, class Iterator2 >
 	bool operator<=( const ft::reverse_iterator<Iterator1>& lhs,
                  const ft::reverse_iterator<Iterator2>& rhs ){
-					 return lhs.base() <= rhs.base();
+					 return lhs.base() >= rhs.base();
 	}
 
 	template< class Iterator1, class Iterator2 >
 	bool operator>( const ft::reverse_iterator<Iterator1>& lhs,
                 const ft::reverse_iterator<Iterator2>& rhs ){
-					return lhs.base() > rhs.base();
+					return lhs.base() < rhs.base();
 	}
 
 	template< class Iterator1, class Iterator2 >
 	bool operator>=( const ft::reverse_iterator<Iterator1>& lhs,
                  const ft::reverse_iterator<Iterator2>& rhs ){
-					 return lhs.base() >= rhs.base();
+					 return lhs.base() <= rhs.base();
 	}
 
 	template< class Iter >

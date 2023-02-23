@@ -7,24 +7,9 @@
 # include "enable_if.hpp"
 # include "iterator_traits.hpp"
 # include "reverseIterator.hpp"
+# include "equal.hpp"
 
 namespace ft {
-    
-    template<class InputIt>
-    bool lexicographical_compare(InputIt first1, InputIt last1,
-                                InputIt first2, InputIt last2) 
-    {
-        InputIt x = first1;
-        InputIt y = first2;
-        for (; (x != y) && (y != last2); (void) ++x, (void) ++y)
-        {
-            if (*x < *y)
-                return true;
-            if (*y < *x)
-                return false;
-        }
-        return (x == last1) && (y != last2);
-    }
 
     template<
         class Key,
@@ -75,48 +60,63 @@ namespace ft {
                 }
             };
 
-            TreeNode* EndOfTree;
 
-            static TreeNode* BigInParent(TreeNode *i) {
+            TreeNode *myRacine;
+            TreeNode *Sentinelle;
+
+            static TreeNode* BigInParent( TreeNode *i) {
                 if (!i->parent)
-                    return (NULL);
-                if (i->parent->big != i)
+                    return (BigValue(i)->big);
+                if (superior(i->parent->key(), i->key()))
                     return i->parent;
                 return BigInParent(i->parent);
             }
 
             static TreeNode* Bigger(TreeNode *i) {
-                if (i->big)
+                if (i == NULL)
+                    return (i);
+                if (i->big == NULL && i->parent == NULL)
+                    return (i);
+                if (i->big == NULL)
+                    return(i->little);
+
+                if (i->big->big) {
                     return (LittleValue(i->big));
-                else
-                    return BigInParent(i);
+                }
+                else {
+                    return (BigInParent(i));
+                }
             }
 
-            TreeNode *myRacine;
 
             static  TreeNode* LittleInParent(TreeNode *i){
-                if (!i->parent)
-                    return (NULL);
-                if (i->parent->little != i)
+                if (!i->parent) {
+                    return (BigValue(i)->big);
+                }
+                if (inferior(i->parent->key(), i->key()))
                     return i->parent;
                 return LittleInParent(i->parent);
             }
 
             static TreeNode* Smaller(TreeNode *i) {
+                if (i == NULL)
+                    return (i);
+                if (i->big == NULL && i->parent == NULL)
+                    return (i);
+                if (i->big == NULL)
+                    return(i->parent);
 
-                if (i->big)
-                    return (LittleValue(i->big));
+                if (i->little->big)
+                    return (BigValue(i->little));
                 else {
                     return LittleInParent(i);
                 }
             }
 
         public :
-
             class map_iterator : std::bidirectional_iterator_tag
             {
                 public :
-                    /*typedef typename TreeIterator::NodeTypes                   NodeTypes;*/
                     typedef typename map::pointer             pointer_traits;
 
                 private :
@@ -124,17 +124,18 @@ namespace ft {
                 public:
                     TreeNode  *i;
                     typedef std::bidirectional_iterator_tag             iterator_category;
-                    //typedef typename map::TreeNode                      TreeNode;
-                    typedef typename map::value_type                    value_type;
+                    typedef map::value_type                    value_type;
                     typedef typename map::difference_type      difference_type;
                     typedef value_type&                                 reference;
-                    typedef typename map::pointer  pointer;
+                    typedef value_type*  pointer;
 
                     map_iterator() {}
 
                     map_iterator(TreeNode _i) : i(&_i) {}
 
                     map_iterator(TreeNode* _i) : i(_i) {}
+                    
+                    map_iterator(const map_iterator &_i) : i(_i.i){}
 
                     reference operator*() const {return i->myValue;}
 
@@ -152,7 +153,7 @@ namespace ft {
 
                     map_iterator operator--(int) {
                         map_iterator t(*this);
-                        i = map::Smaller(*this);
+                        i = map::Smaller(i);
                         return t;
                     }
 
@@ -162,38 +163,92 @@ namespace ft {
                                 return true;
                             if (i == NULL || y.i == NULL)
                                 return false;
-                            return i->myValue == y.i->myValue;}
+                            return i == y.i;}
 
                     bool operator!=( const map_iterator& y) const
                         {
-                            if (i == NULL && y.i == NULL)
-                                return false;
-                            if (i == NULL || y.i == NULL)
-                                return true;
-                            return i->myValue != y.i->myValue;}
+                            return (!(operator==(y)));}
             };
 
-        private :
+            class const_map_iterator : std::bidirectional_iterator_tag
+            {
+                public :
+                    typedef typename map::pointer             pointer_traits;
+
+                private :
+
+                public:
+                    TreeNode  *i;
+                    typedef std::bidirectional_iterator_tag             iterator_category;
+                    typedef const map::value_type                    value_type;
+                    typedef typename map::difference_type      difference_type;
+                    typedef value_type&                                 reference;
+                    typedef value_type*  pointer;
+
+                    const_map_iterator() {}
+
+                    const_map_iterator(TreeNode _i) : i(&_i) {}
+
+                    const_map_iterator(TreeNode* _i) : i(_i) {}
+                    
+                    const_map_iterator(const const_map_iterator &_i) : i(_i.i){}
+
+                    const_map_iterator(const map_iterator &_i) : i(_i.i){}
+
+                    reference operator*() const {return i->myValue;}
+
+                    value_type *operator->() const {return (&(i->myValue));}
+
+                    const_map_iterator& operator++() {i = map::Bigger(i); return *this;}
+
+                    const_map_iterator operator++(int) {
+                        const_map_iterator t(*this);
+                        i = map::Bigger(i);
+                        return t;
+                    }
+
+                    const_map_iterator& operator--() {i = map::Smaller(i); return *this;}
+
+                    const_map_iterator operator--(int) {
+                        const_map_iterator t(*this);
+                        i = map::Smaller(i);
+                        return t;
+                    }
+
+                    bool operator==( const const_map_iterator& y) const {
+                            if (i == NULL && y.i == NULL)
+                                return true;
+                            if (i == NULL || y.i == NULL)
+                                return false;
+                            return i == y.i;}
+
+                    bool operator==( const map_iterator& y) const {
+                            if (i == NULL && y.i == NULL)
+                                return true;
+                            if (i == NULL || y.i == NULL)
+                                return false;
+                            return i == y.i;}
+
+                    bool operator!=( const const_map_iterator& y) const { 
+                        return (!(operator==(y)));
+                    }
+            };
 
         class value_compare : public std::binary_function<value_type, value_type, bool>
         {
             protected:
                 key_compare comp;
 
-                value_compare(key_compare c) : comp(c) {}
             public:
+                value_compare(key_compare c) : comp(c) {}
                 bool operator()(const value_type& x, const value_type& y) const
                     {return comp(x.first, y.first);}
         };
 
-
-        public :
             typedef map_iterator iterator;
-            typedef const map_iterator const_iterator;
+            typedef const_map_iterator const_iterator;
             typedef ft::reverse_iterator<iterator> reverse_iterator;
             typedef ft::reverse_iterator<const_iterator> const_reverse_iterator;
-           // typedef /*iterator_traits<iterator>::difference_type*/ std::ptrdiff_t difference_type;
-
             
         private :
             size_type SIZEOFMYMAP;
@@ -203,52 +258,60 @@ namespace ft {
                 SIZEOFMYMAP++;
                 TreeNode *myPointer = Allocate.myAlloca.allocate(1);
                 Allocate.myAlloca.construct(myPointer, newValue);
-                (*myPointer).little = NULL;
-                (*myPointer).big = NULL;
+                (*myPointer).little = Sentinelle;
+                (*myPointer).big = Sentinelle;
                 myPointer->parent = NULL;
                 (*myPointer).depth = 0;
                 return(myPointer);
             }
 
             TreeNode* DestroyNode(TreeNode* myNode){
+                if (myNode == Sentinelle)
+                    return (Sentinelle);
+                if (myNode == NULL)
+                    return (NULL);
                 TreeNode Allocate(myNode->myValue);
                 SIZEOFMYMAP--;
                 Allocate.myAlloca.destroy(myNode);
+                
                 Allocate.myAlloca.deallocate(myNode, 1);
-                return (NULL);
+                myNode = Sentinelle;
+                return (Sentinelle);
             }
 
 
-            TreeNode *SearchNode(key_type key){
+            TreeNode *SearchNode(key_type key) const {
+                if (myRacine == Sentinelle)
+                    return Sentinelle;
                 TreeNode *myValue = myRacine;
-                while (myValue != NULL && myValue->key() != key)
+                while (myValue != Sentinelle && !equal(myValue->key(), key))
                 {
-                    if (key > myValue->key())
+                    if (superior(key, myValue->key()))
                         myValue = myValue->big;
                 
                     else
-                        if (key < myValue->key())
+                        if (inferior(key, myValue->key()))
                             myValue = myValue->little;
                 }
                 return myValue;
             }
 
-            TreeNode *ApproximativeSearchNode(key_type key){
+            TreeNode *ApproximativeSearchNode(key_type key) const {
                 TreeNode *myValue = myRacine;
-                while (((key > myValue->key() && myValue->big != NULL) || (key < myValue->key() && myValue->little != NULL)) && myValue->key() != key)
+                while (((superior(key, myValue->key()) && myValue->big != Sentinelle) || (inferior( key, myValue->key()) && myValue->little != Sentinelle)) && !equal(myValue->key(), key))
                 {
-                    if (key > myValue->key() && myValue->big != NULL)
+                    if (superior(key, myValue->key()) && myValue->big != Sentinelle)
                         myValue = myValue->big;
                 
                     else
-                        if (key < myValue->key() && myValue->little != NULL)
+                        if (inferior(key,  myValue->key()) && myValue->little != Sentinelle)
                             myValue = myValue->little;
                 }
                 return myValue;
             }
 
             void RecursiveDestroy(TreeNode* myNode){
-                if (myNode == NULL)
+                if (myNode == NULL || myNode == Sentinelle)
                     return ;
                 RecursiveDestroy(myNode->little);
                 RecursiveDestroy(myNode->big);
@@ -256,55 +319,78 @@ namespace ft {
             }
 
             void Init(){
-                myRacine = NULL;
+                TreeNode x = TreeNode(value_type());
+                Sentinelle = x.myAlloca.allocate(1);
+                x.myAlloca.construct(Sentinelle, value_type());
+                Sentinelle->big = NULL;
+                Sentinelle->depth = 0;
+                myRacine = Sentinelle;
                 SIZEOFMYMAP = 0;
-                EndOfTree = NULL;
             }
 
-            static TreeNode * LittleValue(TreeNode *myNode){
-                if (myNode == NULL || myNode->little == NULL)
+            static TreeNode * LittleValue(TreeNode *myNode) {
+                if (myNode->big == NULL || myNode->little->big == NULL)
                     return (myNode);
                 return (LittleValue(myNode->little));
             }
 
-            static TreeNode * BigValue(TreeNode *myNode){
-                if (myNode == NULL || myNode->big == NULL)
+            static TreeNode * BigValue(TreeNode *myNode) {
+                if (myNode->big == NULL || myNode->big->big == NULL)
                     return (myNode);
                 return (BigValue(myNode->big));
             }
 
             int ChangeDepth(TreeNode *myNode){
-                if (myNode->little == NULL && myNode->big == NULL)
-                {
-                    myNode->depth = 0;
-                    return 1;
+                if (myNode == NULL || myNode == Sentinelle)
+                    return (0);
+                if (myNode->little->depth >= myNode->big->depth){
+                    myNode->depth = myNode->little->depth + 1;
                 }
-                if (myNode->little == NULL)
+                else 
                 {
                     myNode->depth = myNode->big->depth + 1;
-                    return 1;
                 }
-                if (myNode->big == NULL)
-                {
-                    myNode->depth = myNode->little->depth + 1;
-                    return 1;
-                }
-                myNode->depth = ((myNode->little->depth >= myNode->big->depth) * myNode->little->depth) + ((myNode->little->depth < myNode->big->depth) * myNode->big->depth) + 1;
                 return (1);
             }
 
+            void ChangeParent(TreeNode *myNode){
+                if (myNode == Sentinelle)
+                    return ;
+                if (myNode->big != Sentinelle)
+                    myNode->big->parent = myNode;
+                if (myNode->little != Sentinelle)
+                    myNode->little->parent = myNode;
+            }
+
+            static bool inferior(const key_type a , const key_type  b){
+                key_compare comp;
+                return (comp(a, b ));
+            }
+
+            static bool superior(const key_type  a, const key_type  b){
+                key_compare comp;
+                return (comp(b, a));
+            }
+
+            static bool equal(const key_type  a, const key_type b){
+                return (!superior(a, b) && !inferior(a, b));
+            }
+
             TreeNode* PutValue(TreeNode *myValue, TreeNode *myNode){
-                    if (myNode == NULL){
+                    if (myNode == Sentinelle){
                         return myValue;
                     }
 
-                    if (myValue->myValue.first < myNode->key()){
+                    if (myValue == Sentinelle)
+                        return (myNode);
+
+                    if (inferior(myValue->key(), myNode->key())){
                         myNode->little = PutValue(myValue, (myNode->little));
                         myNode->little->parent = myNode;
                         ChangeDepth(myNode);
                     }
 
-                    if (myValue->myValue.first > myNode->key()){
+                    if (superior(myValue->key(), myNode->key())){
                         myNode->big = PutValue(myValue, (myNode->big));
                         myNode->big->parent = myNode;
                         ChangeDepth(myNode);
@@ -312,109 +398,120 @@ namespace ft {
                     return (myNode);
             }
 
-            void changeRecursiveParent(TreeNode* myNode){
-                if (myNode->big){
+            /*void changeRecursiveParent(TreeNode* myNode){
+                if (myNode == Sentinelle)
+                    return ;
+                if (myNode->big != Sentinelle){
                     myNode->big->parent = myNode;
                     changeRecursiveParent(myNode->big);
                 }
-                if (myNode->little){
+                if (myNode->little != Sentinelle){
                     myNode->little->parent = myNode;
                     changeRecursiveParent(myNode->little);
                 }
             }
 
             void changeRecursiveDepth(TreeNode* myNode){
-                if (myNode == NULL)
+                if (myNode == Sentinelle)
                     return ;
+                //dprintf(1, " DEPTH ");
+                
                 changeRecursiveDepth(myNode->big);
                 changeRecursiveDepth(myNode->little);
                 ChangeDepth(myNode);
-            }
-
-
+            }*/
 
             TreeNode* rotatelittle(TreeNode* a){
-                if (a && a->little){
+                if (a != Sentinelle && a->little != Sentinelle){
                     TreeNode* temp = a->little->big;
                     a->little->big = a;
+                    TreeNode* tempP = a->parent;
                     a->parent = a->little;
                     a->little = temp;
+
+                    ChangeDepth(a->little);
+                    ChangeDepth(a);
+                    ChangeDepth(a->parent);
+
+                    a->parent->parent = tempP;
+
+                    ChangeParent(a->little);
+                    ChangeParent(a);
+                    ChangeParent(a->parent);
+
                     return (a->parent);
                 }
-                return NULL;
+                return Sentinelle;
             }
 
             TreeNode* rotatebig(TreeNode* a){
-                if (a && a->big){
+                if (a != Sentinelle && a->big != Sentinelle){
                     TreeNode* temp = a->big->little;
                     a->big->little = a;
+                    TreeNode* tempP = a->parent;
                     a->parent = a->big;
                     a->big = temp;
+
+                    ChangeDepth(a->big);
+                    ChangeDepth(a);
+                    ChangeDepth(a->parent);
+
+                    a->parent->parent = tempP;
+
+                    ChangeParent(a->big);
+                    ChangeParent(a);
+                    ChangeParent(a->parent);
+
                     return (a->parent);
                 }
-                return NULL;
-            }
-
-            bool notGoodDepth(TreeNode* a){
-                if (a == NULL)
-                    return false;
-                int depthBig = 0;
-                if (a->big)
-                    depthBig = a->big->depth;
-                int depthLittle = 0;
-                if (a->little)
-                    depthLittle = a->little->depth;
-                if ((depthBig - depthLittle) >= 1)
-                    return true;
-                if ((depthLittle - depthBig) >= 1)
-                    return true;
-                return false;
+                return Sentinelle;
             }
 
             TreeNode* adjust(TreeNode *a){
-                if (a == NULL)
-                    return (NULL);
-                int depthBig = 0;
-                if (a->big)
-                    depthBig = a->big->depth;
-                int depthLittle = 0;
-                if (a->little)
-                    depthLittle = a->little->depth;
-                if (depthBig > depthLittle)
+                if (a == Sentinelle)
+                    return (Sentinelle);
+                int depthBig = a->big->depth;
+                int depthLittle = a->little->depth;
+                if ((depthBig - depthLittle) > 1)
                     a = rotatebig(a);
-                else
+                if ((depthLittle - depthBig) > 1)
                     a = rotatelittle(a);
-                changeRecursiveParent(a);
-                changeRecursiveDepth(a);
                 return a;
             }
 
-            TreeNode* balanceAVL(TreeNode* a){
-                if (a == NULL)
-                    return (NULL);
-                changeRecursiveDepth(a);
-                if (notGoodDepth(a)){
-                    std::cout << "key : " << a->key() << std::endl;
-                //dprintf(1, "OUI");
-                    a = adjust(a);
-                    //print();
+            TreeNode* balanceAVL(TreeNode* a, key_type myKey){
+                if (a == Sentinelle)
+                    return (Sentinelle);
+                a = adjust(a);
+                if (superior(myKey, a->key()))
+                    a->big = balanceAVL(a->big, myKey);
+                if (inferior(myKey, a->key()))
+                    a->little = balanceAVL(a->little, myKey);
+                return a;
+            }
+
+            void OneChangement(key_type myKey){
+                myRacine->parent = NULL;
+                myRacine = balanceAVL(myRacine, myKey);
+                if (myRacine == Sentinelle){
+                    Sentinelle->parent = NULL;
+                    Sentinelle->little = NULL;
+                    return ;
                 }
-                //dprintf(1, "NON");
-                a->big = balanceAVL(a->big);
-                a->little = balanceAVL(a->little);
-                //
-                return a;
+                
+                myRacine->parent = NULL;
+                Sentinelle->parent = BigValue(myRacine);
+                Sentinelle->little = LittleValue(myRacine);
+                //print();
             }
 
-        public:
 
-            bool prufung(TreeNode *myRac, int a, int b){
+            /*bool prufung(TreeNode *myRac, int a, int b){
                 int c = b;
-                while (c-- > 0)
-                {
+                while (c-- > 0){
                     std::cout << " ";
                 }
-                if (myRac == NULL){
+                if (myRac == Sentinelle){
                     std::cout << "          ";
                     return false;
                 }
@@ -425,19 +522,17 @@ namespace ft {
                 }
                 else
                 {
-                    std::cout << " clée: " << (*myRac).key();//" valeur " << (*myRac).Value();
+                    std::cout << " clée: " << (*myRac).key();
                     if (myRac->parent)
                         std::cout << "-" << myRac->parent->key();
                     return (true);
                 }
-                
             }
 
             void print(){
+  
                 int b = 40;
                 int a = 0;
-                changeRecursiveParent(myRacine);
-                changeRecursiveDepth(myRacine);
                 std::cout << "__________________ " << SIZEOFMYMAP << " ______________________________________________________________________\n"; 
                 while (prufung(myRacine, a++, b) == true)
                 {
@@ -445,13 +540,7 @@ namespace ft {
                     b /= 2;
                 }
                 std::cout << "\n";
-                
-                /*std::cout << "profondeur: "<< myRac->depth << " clée: " << (*myRac).key() << " valeur " << (*myRac).Value();
-                if ((*myRac).little != NULL)
-                    print(myRac->little, a / 2);
-                if ((*myRac).big != NULL)
-                    print(myRac->big, a / 2);*/
-            }
+            }*/
 
 
 
@@ -463,39 +552,37 @@ namespace ft {
 
 
 
-
-
-
-
-
-
-
-
+        public:
             map& operator= (const map& x){
-                myRacine = x.myRacine;
+
+                clear();
+                insert(x.begin(), x.end());
+                return (*this);
             }
 
             ~map(){
-                RecursiveDestroy(myRacine);
+                clear();
+                TreeNode Allocate(Sentinelle->myValue);
+                Allocate.myAlloca.destroy(Sentinelle);
+                
+                Allocate.myAlloca.deallocate(Sentinelle, 1);
             }
 
             //////////////////CONSTRUCTOR///////////////////////////////////////////
 
-
-            template <class InputIterator>  map (InputIterator first, InputIterator last, const key_compare& comp = key_compare(), const allocator_type& alloc = allocator_type(), typename ft::enable_if<!std::is_integral<InputIterator>::value>::type* = 0){
+            template <class InputIterator>  map (InputIterator first, InputIterator last, const key_compare& comp = key_compare(), const allocator_type& alloc = allocator_type(), typename ft::enable_if<!ft::is_integral<InputIterator>::value>::type* = 0){
+              
                 (void)comp;
+                (void)alloc;
                 Init();
                 insert(first, last);
 
             }
-
-            //explicit map (const key_compare& comp = key_compare(), const allocator_type& alloc = allocator_type()){
-
-            //}
             
             explicit map( const Compare& comp,
               const Allocator& alloc = Allocator() ){
-                   (void)comp;
+                    (void)alloc;
+                    (void)comp;
                 Init();
             }
 
@@ -505,7 +592,7 @@ namespace ft {
 
             map (const map& x){
                 Init();
-                myRacine = x.myRacine;
+                insert(x.begin(), x.end());
             }
 
             /////////////////////////ITERATORS///////////////////////////////////////////
@@ -515,63 +602,62 @@ namespace ft {
             }
             
             const_iterator begin() const{
-                return (LittleValue(myRacine)); 
+                return (const_iterator(LittleValue(myRacine))); 
             }
 
             iterator end(){
-                return NULL;
+                return Sentinelle;
             }
             
             const_iterator end() const{
-                return NULL;
+                return const_iterator(Sentinelle);
             }
 
             reverse_iterator rbegin(){
-                return (reverse_iterator(iterator( BigValue(myRacine))));
+                return (reverse_iterator(end()));
             }
 
             const_reverse_iterator rbegin() const{
-                return reverse_iterator(BigValue(myRacine));
+                return const_reverse_iterator(end());
             }
 
             reverse_iterator rend(){
-                return (reverse_iterator( iterator(NULL)));
+                return (reverse_iterator(begin()));
             }
 
             const_reverse_iterator rend() const{
-                return reverse_iterator(NULL);
+                return const_reverse_iterator(begin());
             }
 
             ////////////////////CAPACITY////////////////////////////////////////////////////////////
 
             bool empty() const{
-                return (SIZEOFMYMAP == 0);
+                return (myRacine == Sentinelle);
             }
-
 
             size_type size() const{
                 return SIZEOFMYMAP;
             }
 
             size_type max_size() const{
-                return myRacine->myAlloc.max_size();
+                return myRacine->myAlloca.max_size();
             }
 
             //////////////////////MODIFIER//////////////////////////////////////////////////////////////
 
             void clear(){
                 RecursiveDestroy(myRacine);
-                myRacine = NULL;
+                myRacine = Sentinelle;
             }
 
             ft::pair<iterator,bool> insert (const value_type& val){
                 ft::pair<iterator,bool> ret;
-                if (SearchNode(val.first) == NULL) {
+                if (SearchNode(val.first) == Sentinelle) {
                     ret.second = true;
+              
                     myRacine = PutValue(DefineNode(val), myRacine);
-                    myRacine = balanceAVL(myRacine);
-                    myRacine->parent = NULL;
-                    print();
+                    OneChangement(val.first);
+                  
                 }
                 else {
                     ret.second = false;
@@ -587,58 +673,70 @@ namespace ft {
 
             template <class InputIterator>
             void insert (InputIterator first, InputIterator last){
-                while (first != last)
-                {
-                    insert(first);
+                
+                while (first != last){
+                    insert(*first);
                     first++;
-                }
-                insert(last);              
+                }          
             }
 
             void erase (iterator position){
-                erase(position->i->Key());
+                erase(position->first);
             }
 
 
             size_type erase (const key_type& k){
                 TreeNode *NodeErase = SearchNode(k);
-                if (NodeErase == NULL)
+                if (NodeErase == Sentinelle)
                     return 0;
 
-                TreeNode *tempr = NodeErase->big;
+                TreeNode *tempb = NodeErase->big;
                 TreeNode *templ = NodeErase->little;
 
                 if (NodeErase->parent != NULL){
                     if (NodeErase->parent->little == NodeErase)
-                        NodeErase->parent->little = NULL;
+                        NodeErase->parent->little = Sentinelle;
                     if (NodeErase->parent->big == NodeErase)
-                        NodeErase->parent->big = NULL;
+                        NodeErase->parent->big = Sentinelle;
                 }
-                if (NodeErase == myRacine)
-                    myRacine = NULL;
-                DestroyNode(NodeErase);
-                if (templ)
+                if (NodeErase == myRacine){
+                    myRacine = tempb;
                     myRacine = PutValue(templ, myRacine);
-                if (tempr)
-                    myRacine = PutValue(tempr, myRacine);
-                
-                myRacine = balanceAVL(myRacine);
+                    OneChangement(k);
+                    NodeErase = DestroyNode(NodeErase);
+                    return (1);
+                }
+                NodeErase = DestroyNode(NodeErase);
+                myRacine = PutValue(templ, myRacine);
+                myRacine = PutValue(tempb, myRacine);
+                OneChangement(k);
                 return 1;
             }
 
             void erase (iterator first, iterator last){
+                iterator temp;
                 while (first != last){
+                    temp = first;
+                    temp++;
                     erase(first);
-                    first++;
+                    first = temp;
                 }
-                erase(last);
+
             }
 
             void swap (map& x){
-                TreeNode * temp = myRacine;
+                TreeNode* temprac = myRacine;
+                size_type tempsiz = SIZEOFMYMAP;
+                TreeNode* tempsen = Sentinelle;
+
                 myRacine = x.myRacine;
-                x.myRacine = myRacine;
-            }
+                SIZEOFMYMAP = x.SIZEOFMYMAP;
+                Sentinelle = x.Sentinelle;
+
+                x.myRacine = temprac;
+                x.SIZEOFMYMAP = tempsiz;
+                x.Sentinelle = tempsen;
+                }
 
             mapped_type& operator[] (const key_type& k){
                 mapped_type &z = insert(ft::make_pair(k, T())).first->second;
@@ -647,7 +745,7 @@ namespace ft {
 
             mapped_type& at (const key_type& k){
                 TreeNode *ret = SearchNode(k);
-                if (ret != NULL){
+                if (ret != Sentinelle){
                     return (&((*ret)->myValue()));
                 }
                 throw std::out_of_range("invalid number");
@@ -656,27 +754,32 @@ namespace ft {
             
             const mapped_type& at (const key_type& k) const{
                 TreeNode ret = SearchNode(k);
-                if (ret != NULL){
+                if (ret != Sentinelle){
                     return (&((*ret)->myValue()));
                 }
                 throw std::out_of_range("invalid number");
             }
 
+            size_type count (const key_type& k) const{
+                if (SearchNode(k) != Sentinelle)
+                    return (1);
+                return (0);
+            }
+
             iterator find (const key_type& k){
                 return (SearchNode(k));
             }
-            
 
             const_iterator find (const key_type& k) const{
                 return (SearchNode(k));
             }
 
-            std::pair<iterator,iterator> equal_range( const Key& key ){
+            ft::pair<iterator,iterator> equal_range( const Key& key ){
                 return ft::make_pair<iterator, iterator>(lower_bound(key), upper_bound(key));
             }
 
-            std::pair<const_iterator,const_iterator> equal_range( const Key& key ) const{
-                return ft::make_pair<iterator, iterator>(lower_bound(key), upper_bound(key));
+            ft::pair<const_iterator,const_iterator> equal_range( const Key& key ) const{
+                return ft::make_pair<const_iterator, const_iterator>(lower_bound(key), upper_bound(key));
             }
 
 
@@ -684,7 +787,7 @@ namespace ft {
 
         key_compare key_comp() const{
             return key_compare() ;
-            };
+        }
 
         value_compare value_comp() const{
             return value_compare(key_comp());
@@ -692,30 +795,36 @@ namespace ft {
 
         iterator lower_bound( const Key& key ){
             TreeNode* a = ApproximativeSearchNode(key);
-            if (a->key() < key)
+            if (inferior(a->key(), key))
                 a = Bigger(a);
             return (a);
         }
 
         const_iterator lower_bound( const Key& key ) const{
-            TreeNode* a = ApproximativeSearchNode(key);
-            if (a->key() < key)
-                a = Bigger(a);
-            return (a);
+            TreeNode* a (ApproximativeSearchNode(key));
+            if (inferior(a->key(), key)){
+                const_iterator b(Bigger(a));
+                return (b);
+            }
+            const_iterator b(a);
+            return (b);
         }
 
         iterator upper_bound( const Key& key ){
             TreeNode* a = ApproximativeSearchNode(key);
-            if (a->key() <= key)
+            if (inferior(a->key(), key) || equal(a->key(), key))
                 a = Bigger(a);
             return (a);
         }
 
         const_iterator upper_bound( const Key& key ) const{
             TreeNode* a = ApproximativeSearchNode(key);
-            if (a->key() <= key)
-                a = Bigger(a);
-            return (a);
+            if (inferior(a->key(), key) || equal(a->key(), key)){
+                const_iterator b(Bigger(a));
+                return (b);
+            }
+            const_iterator b(a);
+            return (b);
         }
     };
 
@@ -728,23 +837,8 @@ namespace ft {
     template< class Key, class T, class Compare, class Alloc >
     bool operator==( const map<Key,T,Compare,Alloc>& lhs,
                     const map<Key,T,Compare,Alloc>& rhs ){
-        typedef typename ft::map<Key, T, Compare, Alloc>::iterator iterator;
-        //typedef ft::map<Key, T, Compare, Alloc> map;
-        iterator lit = lhs.begin();
-        iterator rit = rhs.begin();
-
-        //std::cout << "coucou " << (lit != lhs.end()) <<std::endl;
-        for (; lit != lhs.end() && rit != rhs.end(); rit++, lit++)
-        {
-            //std::cout << "coucou" << std::endl;
-            //std::cout <<  lit->first << " hh " << rit->first << "\n\n";
-            if (lit != rit)
-                return false;
-        }
-        if (rit == rhs.end() && lit == lhs.end())
-            return (true);
-        //std::cout <<  lit->second << " rr " << rit->second << "\n\n";
-        return (false);
+        typedef typename ft::map<Key, T, Compare, Alloc>::const_iterator iterator;
+        return (ft::equal<iterator, iterator>(lhs.begin(), lhs.end(), rhs.begin()) && lhs.size() == rhs.size());
     }
 
     template< class Key, class T, class Compare, class Alloc >
@@ -756,31 +850,29 @@ namespace ft {
     template< class Key, class T, class Compare, class Alloc >
     bool operator<( const map<Key,T,Compare,Alloc>& lhs,
                     const map<Key,T,Compare,Alloc>& rhs ){
-        typedef typename ft::map<Key, T>::iterator iterator;
-        return (ft::lexicographical_compare<iterator>(lhs.begin(), lhs.end(), rhs.begin(), rhs.end()));
+        typedef typename ft::map<Key, T>::const_iterator iterator;
+        return (ft::lexicographical_compare<iterator, iterator>(lhs.begin(), lhs.end(), rhs.begin(), rhs.end()));
     }
 
     template< class Key, class T, class Compare, class Alloc >
     bool operator<=( const map<Key,T,Compare,Alloc>& lhs,
                     const map<Key,T,Compare,Alloc>& rhs ){
-        typedef typename ft::map<Key, T>::iterator iterator;
-        return (ft::lexicographical_compare<iterator>(lhs.begin(), lhs.end(), rhs.begin(), rhs.end()) || (rhs == lhs));
+        typedef typename ft::map<Key, T>::const_iterator iterator;
+        return (ft::lexicographical_compare<iterator, iterator>(lhs.begin(), lhs.end(), rhs.begin(), rhs.end()) || (rhs == lhs));
     }
 
     template< class Key, class T, class Compare, class Alloc >
     bool operator>( const map<Key,T,Compare,Alloc>& lhs,
                     const map<Key,T,Compare,Alloc>& rhs ){
         typedef typename ft::map< Key, T, Compare, Alloc>::const_iterator iterator;
-        return (std::lexicographical_compare<iterator, iterator>(rhs.begin(), rhs.end(), lhs.begin(), lhs.end()));
+        return (ft::lexicographical_compare<iterator, iterator>(rhs.begin(), rhs.end(), lhs.begin(), lhs.end()));
     }
 
     template< class Key, class T, class Compare, class Alloc >
     bool operator>=( const map<Key,T,Compare,Alloc>& lhs,
                     const map<Key,T,Compare,Alloc>& rhs ){
         typedef typename ft::map<Key, T>::const_iterator iterator;
-        map<Key,T,Compare,Alloc> crhs = rhs;
-        map<Key,T,Compare,Alloc> clhs = lhs;
-        return (std::lexicographical_compare<iterator, iterator>(crhs.begin(), crhs.end(), clhs.begin(), clhs.end()) || (rhs == lhs));
+        return (ft::lexicographical_compare<iterator, iterator>(rhs.begin(), rhs.end(), lhs.begin(), lhs.end()) || (rhs == lhs));
     }
 }
 
